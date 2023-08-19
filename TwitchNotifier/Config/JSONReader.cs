@@ -1,15 +1,12 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TwitchNotifier.Config
 {
     internal class JSONReader
     {
         public string Token { get; set; }
+        public string TwitchClientId { get; set; }
+        public string TwitchAccessToken { get; set; }
 
         internal async Task ReadJSONAsync()
         {
@@ -24,6 +21,8 @@ namespace TwitchNotifier.Config
                 }
 
                 Token = data.Token;
+                TwitchAccessToken = data.TwitchAccessToken;
+                TwitchClientId = data.TwitchClientId;
             }
         }
     }
@@ -31,5 +30,7 @@ namespace TwitchNotifier.Config
     internal class JSONStructure
     {
         public string Token { get; set; }
+        public string TwitchClientId { get; set; }
+        public string TwitchAccessToken { get; set; }
     }
 }
