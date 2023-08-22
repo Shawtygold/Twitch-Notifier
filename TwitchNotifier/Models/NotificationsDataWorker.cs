@@ -1,5 +1,4 @@
-﻿using DSharpPlus.Entities;
-using TwitchNotifier.Db;
+﻿using TwitchNotifier.Db;
 using TwitchNotifier.Helpers;
 
 namespace TwitchNotifier.Models
@@ -56,7 +55,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications. \nException: {ex}");
+                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications.\nException: {ex}");
                 return null;
             }
         }
@@ -73,7 +72,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications by guild id. \nException: {ex}");
+                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications by guild id.\nException: {ex}");
                 return null;
             }
         }
@@ -85,14 +84,14 @@ namespace TwitchNotifier.Models
             {
                 List<Notification> notifications = new();
                 await Task.Run(() => notifications = db.Notifications.ToList().FindAll(n => n.Id == id));
-                if (notifications.Count <= 0)
+                if (notifications.Count == 0)
                     return null;
 
                 return notifications[0];
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notification from the database. \nException: {ex}");
+                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notification from the database.\nException: {ex}");
                 return null;
             }
         }

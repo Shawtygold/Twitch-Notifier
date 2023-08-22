@@ -26,9 +26,11 @@ namespace TwitchNotifier
             });
 
             Client.Ready += Client_Ready;
-
+            
             SlashCommands = Client.UseSlashCommands();
             SlashCommands.RegisterCommands<NotificationCommands>();
+            SlashCommands.RegisterCommands<InfoCommand>();
+            SlashCommands.RegisterCommands<InviteCommand>();
 
             StreamMonitor streamMonitor;
             List<Notification>? notifications = await NotificationsDataWorker.GetNotificationsAsync(); 

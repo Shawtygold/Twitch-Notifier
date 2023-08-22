@@ -1,7 +1,5 @@
-﻿using DSharpPlus;
-using DSharpPlus.Entities;
+﻿using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
-using System.Numerics;
 using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.Api.Services;
@@ -59,17 +57,8 @@ namespace TwitchNotifier.Models
             string twitchChannelName = e.Channel;
             var stream = e.Stream;
 
-            //получаю количество уведомлений на один и тот же канал
-            List<Notification> notifications;
-            try
-            {
-                notifications = _notifications.FindAll(n => n.TwitchChannelName == twitchChannelName);
-            }
-            catch (Exception ex)
-            {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong.\nException: {ex}");
-                return;
-            }
+            //получаю список уведомлений на один и тот же Twitch канал 
+            List<Notification> notifications = notifications = _notifications.FindAll(n => n.TwitchChannelName == twitchChannelName);
 
             for (int i = 0; i < notifications.Count; i++)
             {
@@ -78,9 +67,14 @@ namespace TwitchNotifier.Models
                 {
                     discordChannel = await Bot.Client.GetChannelAsync(notifications[i].DiscordChannelId);
                 }
-                catch (Exception ex)
+                catch (NotFoundException ex)
                 {
                     ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get a discord channel to which you need to send a notification about the start of the stream on Twitch. Discord channel not found!\nException: {ex}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get a discord channel to which you need to send a notification about the start of the stream on Twitch.\nException: {ex}");
                     return;
                 }
 
@@ -96,7 +90,7 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong.\n\nPlease contact the developer. To do this, go to https://t.me/Shawtygoldq and include the following debugging information in the message:\n```{ex}\n```");
+                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong.\n\nPlease contact the developer and include the following debugging information in the message:\n```{ex}\n```");
                     }
                     catch
                     {
@@ -148,15 +142,15 @@ namespace TwitchNotifier.Models
                 {
                     await discordChannel.SendMessageAsync(new DiscordMessageBuilder().WithContent(notificationMessage).AddEmbed(embed).AddComponents(button));
                 }
-                catch (UnauthorizedException)
+                catch (UnauthorizedException ex)
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong. I may not be allowed to embed links and attach files! Please check the permissions.");
+                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong. Maybe I'm not allowed to access the channel, send messages, embed links or attach files! Please, check the permissions.");
                     }
                     catch
                     {
-                        ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong. The bot is not allowed to insert links and attach files! Permissions should be checked.");
+                        ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong. Permissions should be checked.\nException {ex}");
                     }                    
                     return;
                 }
@@ -164,7 +158,7 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong when trying to send a notification to the Discord channel.\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please go to https://t.me/Shawtygoldq and include the following debugging information in the message:\n```{ex}\n```");
+                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong when trying to send a notification to the Discord channel.\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```");
                     }
                     catch
                     {
@@ -181,8 +175,8 @@ namespace TwitchNotifier.Models
 
         public static async Task<bool> AddNotificationAsync(Notification notification)
         {
-            //добавление уведомления в бд
-            if(!await NotificationsDataWorker.AddNotificationAsync(notification))
+            //добавление уведомления в базу данных
+            if (!await NotificationsDataWorker.AddNotificationAsync(notification))
             {
                 return false;
             }
@@ -203,7 +197,8 @@ namespace TwitchNotifier.Models
 
         public static async Task<bool> RemoveNotificationAsync(Notification notification)
         {
-            if(!await NotificationsDataWorker.RemoveNotificationAsync(notification))
+            //удаление уведомления из базы данных
+            if (!await NotificationsDataWorker.RemoveNotificationAsync(notification))
             {
                 return false;
             }
