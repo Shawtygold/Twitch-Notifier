@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TwitchNotifier.Models;
 
 namespace TwitchNotifier.SlashCommands
 {
@@ -35,7 +36,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AccessChannels))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.AccessChannels }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -45,7 +46,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if(!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.SendMessages) || !bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.EmbedLinks))
+            if(!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages, Permissions.EmbedLinks }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -58,7 +59,7 @@ namespace TwitchNotifier.SlashCommands
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
             {
                 Color = new DiscordColor("#9246FF"),
-                Description = $"You can invite me to a server with this link: **{inviteLink}**\nNeed help? Write to me in private messages: shawtygold"
+                Description = $"Link to invite to the server: **{inviteLink}**\nNeed help? Write to me in private messages: shawtygold"
             }));
         }
     }

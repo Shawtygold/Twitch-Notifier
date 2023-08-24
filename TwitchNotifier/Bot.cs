@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Config;
+using TwitchNotifier.Helpers;
 using TwitchNotifier.Models;
 using TwitchNotifier.SlashCommands;
 
@@ -31,14 +32,16 @@ namespace TwitchNotifier
             SlashCommands.RegisterCommands<NotificationCommands>();
             SlashCommands.RegisterCommands<InfoCommand>();
             SlashCommands.RegisterCommands<InviteCommand>();
+            SlashCommands.RegisterCommands<HelpCommand>();
 
             StreamMonitor streamMonitor;
-            List<Notification>? notifications = await NotificationsDataWorker.GetNotificationsAsync(); 
-
+            List<Notification>? notifications = await NotificationsDataWorker.GetNotificationsAsync();
             if (notifications == null)
-                streamMonitor = new(new List<Notification>());
-            else
-                streamMonitor = new(notifications);
+                return;
+
+            List<string> channelsToMonitor = await GetChannelsToMonitorAsync(notifications);
+
+            streamMonitor = new(channelsToMonitor);
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
@@ -57,6 +60,24 @@ namespace TwitchNotifier
             Client.UpdateStatusAsync(activity).Wait();
 
             return Task.CompletedTask;
+        }
+
+        private static async Task<List<string>> GetChannelsToMonitorAsync(List<Notification> notifications)
+        {
+            List<string> channelsToMonitor = new();
+            await Task.Run(() => channelsToMonitor = GetChannelsToMonitor(notifications));
+            return channelsToMonitor;
+        }
+        private static List<string> GetChannelsToMonitor(List<Notification> notifications)
+        {
+            List<string> channelsToMonitor = new();
+
+            for (int i = 0; i < notifications.Count; i++)
+            {
+                channelsToMonitor.Add(notifications[i].TwitchChannelName);
+            }
+
+            return channelsToMonitor;
         }
     }
 }

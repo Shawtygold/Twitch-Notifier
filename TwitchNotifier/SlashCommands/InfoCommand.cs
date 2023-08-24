@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Helpers;
+using TwitchNotifier.Models;
 
 namespace TwitchNotifier.SlashCommands
 {
@@ -28,7 +29,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AccessChannels))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new(){ Permissions.AccessChannels}))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -38,7 +39,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.SendMessages) || !bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.EmbedLinks))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages, Permissions.EmbedLinks }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -65,7 +66,7 @@ namespace TwitchNotifier.SlashCommands
 
             embed.AddField("Joined At", $"{joinedAt.LocalDateTime}");
             embed.AddField("Servers", $"**·** Total {guildsCount}\n**·** Total Shards {totalShard}", true);
-            embed.AddField("Versions", $"**·** C# {langVersion}\n**·** DSharp Version {DSharpVersion}\n**·** Gateway Version {gatewayVersion}", true);
+            embed.AddField("Versions", $"**·** C# {langVersion}\n**·** D#+ Version {DSharpVersion}\n**·** Gateway Version {gatewayVersion}", true);
             embed.AddField("Developer", "Shawtygold\nhttps://t.me/Shawtygoldq");
 
             try

@@ -10,15 +10,15 @@ namespace TwitchNotifier.Models
 {
     internal class StreamMonitor
     {
-        private static List<string> _channelsToMonitor;
-        private static List<Notification> _notifications;
+        private static List<string> _channelsToMonitor { get; set; }
+        
         private static LiveStreamMonitorService _monitorService;
         private static TwitchAPI _api;
         private static bool _startTracking;
 
-        public StreamMonitor(List<Notification> notifications)
+        public StreamMonitor(List<string> channelsToMonitor)
         {
-            if (notifications == null)
+            if (channelsToMonitor == null)
                 return;
 
             var jsonReader = new JSONReader();
@@ -29,21 +29,12 @@ namespace TwitchNotifier.Models
             _api.Settings.AccessToken = jsonReader.TwitchAccessToken;
 
             _startTracking = false;
-            _notifications = notifications;
-            _channelsToMonitor = new();
-
-            if (_notifications.Count > 0)
-            {
-                for (int i = 0; i < _notifications.Count; i++)
-                {
-                    _channelsToMonitor.Add(_notifications[i].TwitchChannelName);
-                }
-            }
+            _channelsToMonitor = channelsToMonitor;
 
             _monitorService = new(_api);
             _monitorService.OnStreamOnline += MonitorService_OnStreamOnline;
 
-            if (_notifications.Count > 0)
+            if (_channelsToMonitor.Count > 0)
             {
                 StartTrackingAsync().Wait();
                 _startTracking = true;
@@ -56,9 +47,14 @@ namespace TwitchNotifier.Models
         {
             string twitchChannelName = e.Channel;
             var stream = e.Stream;
+      
+            List<Notification>? allNotifications = await NotificationsDataWorker.GetNotificationsAsync();
 
-            //получаю список уведомлений на один и тот же Twitch канал 
-            List<Notification> notifications = notifications = _notifications.FindAll(n => n.TwitchChannelName == twitchChannelName);
+            if (allNotifications == null)
+                return;
+
+            //получаю список уведомлений на один и тот же Twitch канал  
+            List<Notification> notifications = allNotifications.FindAll(n => n.TwitchChannelName == twitchChannelName);
 
             for (int i = 0; i < notifications.Count; i++)
             {
@@ -66,11 +62,6 @@ namespace TwitchNotifier.Models
                 try
                 {
                     discordChannel = await Bot.Client.GetChannelAsync(notifications[i].DiscordChannelId);
-                }
-                catch (NotFoundException ex)
-                {
-                    ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get a discord channel to which you need to send a notification about the start of the stream on Twitch. Discord channel not found!\nException: {ex}");
-                    return;
                 }
                 catch (Exception ex)
                 {
@@ -131,12 +122,7 @@ namespace TwitchNotifier.Models
 
                 var button = new DiscordLinkButtonComponent(streamUrl, "Watch Stream");
 
-                string? notificationMessage;
-
-                if (notifications[i].Message == null)
-                    notificationMessage = "";
-                else
-                    notificationMessage = notifications[i].Message;
+                string notificationMessage = notifications[i].Message ?? "";
 
                 try
                 {
@@ -173,16 +159,12 @@ namespace TwitchNotifier.Models
 
         #region [Methods]
 
-        public static async Task<bool> AddNotificationAsync(Notification notification)
+        public static async Task AddNotificationAsync(string twitchChannelName)
         {
-            //добавление уведомления в базу данных
-            if (!await NotificationsDataWorker.AddNotificationAsync(notification))
-            {
-                return false;
-            }
+            if (twitchChannelName == null)
+                return;
 
-            _notifications.Add(notification);
-            _channelsToMonitor.Add(notification.TwitchChannelName);
+            _channelsToMonitor.Add(twitchChannelName);
 
             await UpdateChannelsToMonitorAsync(_channelsToMonitor);
 
@@ -191,44 +173,22 @@ namespace TwitchNotifier.Models
                 await StartTrackingAsync();
                 _startTracking = true;
             }
-
-            return true;
         }
 
-        public static async Task<bool> RemoveNotificationAsync(Notification notification)
+        public static async Task RemoveNotificationAsync(string twitchChannelName)
         {
-            //удаление уведомления из базы данных
-            if (!await NotificationsDataWorker.RemoveNotificationAsync(notification))
-            {
-                return false;
-            }
+            if (twitchChannelName == null)
+                return;
 
-            _notifications.Remove(notification);
-            _channelsToMonitor.Remove(notification.TwitchChannelName);
+            _channelsToMonitor.Remove(twitchChannelName);
 
             if (_channelsToMonitor.Count > 0)
             {
                 await UpdateChannelsToMonitorAsync(_channelsToMonitor);
             }
-
-            return true;
         }
 
-        private static async Task StartTrackingAsync()
-        {
-            try
-            {
-                await Task.Run(() => _monitorService.SetChannelsByName(_channelsToMonitor));
-                await Task.Run(() => _monitorService.Start());
-            }
-            catch (Exception ex)
-            {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to start tracking channel activity.\nException: {ex}");
-                return;
-            }
-        }
-
-        private static async Task UpdateChannelsToMonitorAsync(List<string> channelsToMonitor)
+        public static async Task UpdateChannelsToMonitorAsync(List<string> channelsToMonitor)
         {
             try
             {
@@ -237,6 +197,26 @@ namespace TwitchNotifier.Models
             catch (Exception ex)
             {
                 ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong while trying to set channels to monitor!\nException: {ex}");
+                return;
+            }
+        }
+
+        private static async Task StartTrackingAsync()
+        {
+            await Task.Run(() => StartTracking());
+        }
+
+        private static void StartTracking()
+        {
+            try
+            {
+                _monitorService.SetChannelsByName(_channelsToMonitor);
+                _monitorService.Start();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to start tracking channel activity.\nException: {ex}");
+                return;
             }
         }
 

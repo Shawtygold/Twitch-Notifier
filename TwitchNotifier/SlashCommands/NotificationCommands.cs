@@ -2,7 +2,9 @@
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
+using System.Drawing;
 using TwitchNotifier.Models;
+using static System.Net.WebRequestMethods;
 
 namespace TwitchNotifier.SlashCommands
 {
@@ -10,14 +12,14 @@ namespace TwitchNotifier.SlashCommands
     {
         #region [Notification Add]
 
-        [SlashCommand("notification_add", "Add notification of the beginning of the stream account on twitch.")]
+        [SlashCommand("notification_add", "Adds a notification to the server.")]
         public static async Task AddNotification(InteractionContext ctx,
             [Option("twitch_channel_name", "The name of the Twitch channel.")] string twitchChannelName,
             [Option("channel", "Discord channel.")] DiscordChannel discordChannel,
             [Option("embed_color", "Color embed message.")] string? color = null,
             [Option("message", "The message to be sent along with the notification.")] string? message = null)
         {
-            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator) && !ctx.Member.IsOwner)
+            if (!PermissionsManager.CheckPermissionsIn(ctx.Member, ctx.Channel, new() { Permissions.Administrator }) && !ctx.Member.IsOwner)
             {
                 await ctx.CreateResponseAsync(new DiscordEmbedBuilder()
                 {
@@ -44,7 +46,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AccessChannels))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.AccessChannels }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -54,12 +56,12 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.SendMessages) || !bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.EmbedLinks) || !bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AttachFiles))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages, Permissions.EmbedLinks, Permissions.AttachFiles }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Red,
-                    Description = "Maybe I'm not allowed to send messages, insert links or attach files in this channel. Please check the permissions."
+                    Description = "Maybe I'm not allowed to send messages, embed links or attach files in this channel. Please check the permissions."
                 }));
                 return;
             }              
@@ -86,15 +88,18 @@ namespace TwitchNotifier.SlashCommands
                 Message = message
             };
 
-            if (!await StreamMonitor.AddNotificationAsync(notification))
+            //добавление уведомления в базу данных
+            if (!await NotificationsDataWorker.AddNotificationAsync(notification))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Red,
-                    Description = "Hmm, the notification was not added due to an internal database error.\n\nPlease contact the developer. To do this, go to https://t.me/Shawtygoldq."
+                    Description = "Hmm, the notification was not added due to a database error.\nPlease try again or contact the developer. To do this, follow the link https://t.me/Shawtygoldq.\""
                 }));
                 return;
             }
+
+            await StreamMonitor.AddNotificationAsync(notification.TwitchChannelName);
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
             {
@@ -107,11 +112,11 @@ namespace TwitchNotifier.SlashCommands
 
         #region [Notification Remove]
 
-        [SlashCommand("notification_remove", "Remove notification of the beginning of the stream account on twitch.")]
+        [SlashCommand("notification_remove", "Removes the notification from the server.")]
         public static async Task RemoveNotification(InteractionContext ctx,
-            [Option("notification_Id", "The name of the Twitch channel.")] long notificationId)
+            [Option("notification_Id", "Notification ID.")] long notificationId)
         {
-            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator) && !ctx.Member.IsOwner)
+            if (!PermissionsManager.CheckPermissionsIn(ctx.Member, ctx.Channel, new() { Permissions.Administrator }) && !ctx.Member.IsOwner)
             {
                 await ctx.CreateResponseAsync(new DiscordEmbedBuilder()
                 {
@@ -138,7 +143,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AccessChannels))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.AccessChannels }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -148,7 +153,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.SendMessages))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -162,35 +167,28 @@ namespace TwitchNotifier.SlashCommands
 
             Notification? notification = await NotificationsDataWorker.GetNotificationAsync(notificationId);
 
-            if (notification == null)
+            if (notification == null || notification.DiscordGuildId != guild.Id)
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Red,
-                    Description = "Hmm, notification not found! Please check id."
+                    Description = "Hmm, notification not found on this server! Please check id."
                 }));
                 return;
             }
 
-            if (notification.DiscordGuildId != guild.Id)
+            //удаление уведомления из базы данных
+            if (!await NotificationsDataWorker.RemoveNotificationAsync(notification))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Red,
-                    Description = "Hmm, notification not found on this server! Please, check id."
+                    Description = "Hmm, the notification was not deleted due to a database error.\nPlease try again or contact the developer. To do this, follow the link https://t.me/Shawtygoldq."
                 }));
                 return;
             }
 
-            if (!await StreamMonitor.RemoveNotificationAsync(notification))
-            {
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
-                {
-                    Color = DiscordColor.Red,
-                    Description = "Hmm, the notification was not removed due to an internal database error.\n\nPlease contact the developer. To do this, go to https://t.me/Shawtygoldq."
-                }));
-                return;
-            }
+            await StreamMonitor.RemoveNotificationAsync(notification.TwitchChannelName);
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
             {
@@ -206,7 +204,7 @@ namespace TwitchNotifier.SlashCommands
         [SlashCommand("notification_list", "Lists all available notifications on the server.")]
         public static async Task NotifiactionList(InteractionContext ctx)
         {
-            if (!ctx.Member.PermissionsIn(ctx.Channel).HasPermission(Permissions.Administrator) && !ctx.Member.IsOwner)
+            if (!PermissionsManager.CheckPermissionsIn(ctx.Member,ctx.Channel, new() { Permissions.Administrator }) && !ctx.Member.IsOwner)
             {
                 await ctx.CreateResponseAsync(new DiscordEmbedBuilder()
                 {
@@ -233,7 +231,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.AccessChannels))
+            if(!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.AccessChannels}))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -243,7 +241,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            if (!bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.SendMessages) || !bot.PermissionsIn(ctx.Channel).HasPermission(Permissions.EmbedLinks))
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages, Permissions.EmbedLinks }))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -254,9 +252,8 @@ namespace TwitchNotifier.SlashCommands
             }
 
             DiscordGuild guild = ctx.Guild;
-            DiscordChannel channel = ctx.Channel;
 
-            List<Notification>? guildNotifications = await NotificationsDataWorker.GetNotificationsAsync(guild.Id);
+            List<Notification>? guildNotifications = await NotificationsDataWorker.GetNotificationsInAsync(guild.Id);
 
             if (guildNotifications == null)
             {
@@ -287,39 +284,160 @@ namespace TwitchNotifier.SlashCommands
 
             for (int i = 0; i < guildNotifications.Count; i++)
             {
+                long notificationId = guildNotifications[i].Id;
+                string twitchChannelName = guildNotifications[i].TwitchChannelName;
+                string twitchChannelLink = $"https://www.twitch.tv/{twitchChannelName}";
+
                 string? color = guildNotifications[i].HEXEmbedColor;
                 color ??= "#9246FF";
 
                 string? message = guildNotifications[i].Message;
                 message ??= "No message";
 
-                embed.AddField($"#{guildNotifications[i].TwitchChannelName}", $"> **Id:** {guildNotifications[i].Id}\n> **Embed color:** {color}\n> **Guild Id:** {guildNotifications[i].DiscordGuildId}\n> **Channel Id:** {guildNotifications[i].DiscordChannelId}\n> **Message:** {message}\n> **Link:** https://www.twitch.tv/{guildNotifications[i].TwitchChannelName}");
+                string discordChannelName;
+                DiscordChannel discordChannel;
+                try
+                {
+                    discordChannel = guild.GetChannel(guildNotifications[i].DiscordChannelId);
+                    if(discordChannel != null)
+                    {
+                        discordChannelName = discordChannel.Name.Replace(discordChannel.Name[0], char.ToUpper(discordChannel.Name[0]));
+                    }
+                    else
+                    {
+                        discordChannelName = "Not found.";
+                    }
+                }
+                catch (ServerErrorException)
+                {
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                    {
+                        Color = DiscordColor.Red,
+                        Description = "Server Error Exception. Please try again or contact the developer."
+                    }));
+                    return;
+                }
+
+                embed.AddField($"#{twitchChannelName}", $"> **Id:** {notificationId}\n> **Embed color:** {color}\n> **Guild:** {guild.Name}\n> **Channel:** {discordChannelName}\n> **Message:** {message}\n> **Link:** {twitchChannelLink}");
             }
 
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
+        }
+
+        #endregion
+
+        #region [Notification Edit]
+
+        [SlashCommand("Notification_edit", "Edits the notification.")]
+        public static async Task EditNotification(InteractionContext ctx,
+            [Option("notification_Id", "Notification ID.")] long notificationId,
+            [Option("message", "The message sent when the broadcast starts on Twitch.")] string? message = null,
+            [Option("channel", "Discord channel.")] DiscordChannel? discordChannel = null,
+            [Option("color", "Embed color.")] string? embedColor = null)
+        {
+            if (!PermissionsManager.CheckPermissionsIn(ctx.Member, ctx.Channel, new() { Permissions.Administrator }) && !ctx.Member.IsOwner)
+            {
+                await ctx.CreateResponseAsync(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "Insufficient permissions. You need **Administrator** permission for this command."
+                }, true);
+                return;
+            }
+
+            await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+
+            DiscordMember bot;
             try
             {
-                await ctx.Client.SendMessageAsync(channel, embed);
+                bot = await ctx.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
             }
-            catch (UnauthorizedException)
+            catch (ServerErrorException)
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Red,
-                    Description = $"Hmm, something went wrong. Maybe I'm not allowed to send messages, embed links or attach files! Please, check the permissions."
+                    Description = "Server Error Exception. Please, try again or contact the developer."
                 }));
                 return;
             }
-            catch (Exception ex)
-            {
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
-                {
-                    Color = DiscordColor.Red,
-                    Description = $"Hmm, something went wrong when trying to send a message to the discord channel!\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```"
-                }));
-                return;
-            }        
 
-            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Success!"));
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.AccessChannels }))
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "I don't have access to this channel! Please, check the permissions."
+                }));
+                return;
+            }
+
+            if (!PermissionsManager.CheckPermissionsIn(bot, ctx.Channel, new() { Permissions.SendMessages }))
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "Maybe I'm not allowed to send messages to this channel. Please, check the permissions."
+                }));
+                return;
+            }
+
+            if(message == null && discordChannel == null && embedColor == null)
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "The notification has not been edited. You have not specified which data needs to be changed."
+                }));
+                return;
+            }
+
+            Notification? notification = await NotificationsDataWorker.GetNotificationAsync(notificationId);
+            if (notification == null)
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "Hmm, notification not found! Please check id."
+                }));
+                return;
+            }
+
+            notification.Message = message ?? notification.Message;
+
+            if (discordChannel != null)
+                notification.DiscordChannelId = discordChannel.Id;
+
+            if (embedColor != null)
+            {
+                if (!embedColor.StartsWith("#") && embedColor.Length != 7)
+                {
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                    {
+                        Color = DiscordColor.Red,
+                        Description = "Wrong color specified! Use HEX code for color transfer, for example: #FFFFFF."
+                    }));
+                    return;
+                }
+
+                notification.HEXEmbedColor = embedColor;
+            }
+
+            if(!await NotificationsDataWorker.EditNotificationAsync(notification))
+            {
+                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Description = "Hmm, the notification was not edited due to a database error.\nPlease try again or contact the developer. To do this, follow the link https://t.me/Shawtygoldq.\""
+                }));
+                return;
+            }
+
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
+            {
+                Color = DiscordColor.Green,
+                Description = $"Notification with id **{notification.Id}** has been successfully edited!"
+            }));
         }
 
         #endregion
