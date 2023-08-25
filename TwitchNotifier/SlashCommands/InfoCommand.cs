@@ -69,30 +69,7 @@ namespace TwitchNotifier.SlashCommands
             embed.AddField("Versions", $"**·** C# {langVersion}\n**·** D#+ Version {DSharpVersion}\n**·** Gateway Version {gatewayVersion}", true);
             embed.AddField("Developer", "Shawtygold\nhttps://t.me/Shawtygoldq");
 
-            try
-            {
-                await ctx.Client.SendMessageAsync(ctx.Channel, embed);
-            }
-            catch (UnauthorizedException)
-            {
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
-                {
-                    Color = DiscordColor.Red,
-                    Description = "Hmm, something went wrong. Maybe I'm not allowed to send messages or embed links! Please, check the permissions."
-                }));
-                return;
-            }
-            catch (Exception ex)
-            {
-                await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
-                {
-                    Color = DiscordColor.Red,
-                    Description = $"Hmm, something went wrong when trying to send a message to the discord channel!\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```"
-                }));
-                return;
-            }
-
-            await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("Success!"));
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
         }
     }
 }

@@ -114,7 +114,7 @@ namespace TwitchNotifier.Models
                     Url = streamUrl,
                     Color = embedColor,
                     ImageUrl = previewUrl,
-                    Footer = new() { Text = $"Id {notifications[i].Id} • Today, {DateTime.Now.ToShortTimeString()}" }
+                    Footer = new() { Text = $"Id {notifications[i].Id} • twitch-notifier" }
                 };
 
                 embed.AddField("Game:", stream.GameName, true);
