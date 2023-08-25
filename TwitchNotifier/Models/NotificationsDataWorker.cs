@@ -42,11 +42,10 @@ namespace TwitchNotifier.Models
             }
         }
         public static async Task<bool> EditNotificationAsync(Notification notification)
-        {           
+        {
+            using ApplicationContext db = new();
             try
             {
-                using ApplicationContext db = new();
-
                 Notification? oldNotification = new();
                 await Task.Run(()=> oldNotification = db.Notifications.ToList().Find(n => n.Id == notification.Id));
                 if (oldNotification == null)
