@@ -2,7 +2,6 @@
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
-using TwitchNotifier.Helpers;
 using TwitchNotifier.Models;
 
 namespace TwitchNotifier.SlashCommands

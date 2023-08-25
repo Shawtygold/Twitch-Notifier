@@ -1,6 +1,4 @@
-﻿using DSharpPlus.Entities;
-
-namespace TwitchNotifier.Models
+﻿namespace TwitchNotifier.Models
 {
     internal class Notification
     {

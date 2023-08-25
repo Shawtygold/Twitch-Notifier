@@ -1,12 +1,7 @@
-﻿using DSharpPlus.SlashCommands;
-using System;
-using DSharpPlus;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
+using DSharpPlus.SlashCommands;
 using TwitchNotifier.Models;
 
 namespace TwitchNotifier.SlashCommands
