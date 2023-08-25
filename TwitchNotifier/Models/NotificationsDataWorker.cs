@@ -47,12 +47,12 @@ namespace TwitchNotifier.Models
             {
                 using ApplicationContext db = new();
 
-                Notification? notification1 = new();
-                await Task.Run(()=> notification1 = db.Notifications.ToList().Find(n => n.Id == notification.Id));
-                if (notification1 == null)
+                Notification? oldNotification = new();
+                await Task.Run(()=> oldNotification = db.Notifications.ToList().Find(n => n.Id == notification.Id));
+                if (oldNotification == null)
                     return false;
 
-                int index = db.Notifications.ToList().IndexOf(notification1);
+                int index = db.Notifications.ToList().IndexOf(oldNotification);
 
                 db.Notifications.ToList()[index].DiscordChannelId = notification.DiscordChannelId;
                 db.Notifications.ToList()[index].HEXEmbedColor = notification.HEXEmbedColor;
