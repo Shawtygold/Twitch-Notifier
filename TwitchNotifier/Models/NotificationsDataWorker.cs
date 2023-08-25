@@ -23,6 +23,7 @@ namespace TwitchNotifier.Models
                 return false;
             }
         }
+
         public static async Task<bool> RemoveNotificationAsync(Notification notification)
         {
             if (notification == null)
@@ -41,6 +42,7 @@ namespace TwitchNotifier.Models
                 return false;
             }
         }
+
         public static async Task<bool> EditNotificationAsync(Notification notification)
         {
             using ApplicationContext db = new();
@@ -83,6 +85,7 @@ namespace TwitchNotifier.Models
                 return null;
             }
         }
+
         public static async Task<List<Notification>?> GetNotificationsAsync()
         {
             List<Notification>? notifications = new();
@@ -106,6 +109,7 @@ namespace TwitchNotifier.Models
                 return null;
             }
         }
+
         public static async Task<List<Notification>?> GetNotificationsInAsync(ulong guildId)
         {
             List<Notification>? guildNotifications = new();
@@ -133,6 +137,7 @@ namespace TwitchNotifier.Models
                 return null;
             }
         }
+
         public static async Task<Notification?> GetNotificationAsync(long id)
         {
             Notification? notification = new();
