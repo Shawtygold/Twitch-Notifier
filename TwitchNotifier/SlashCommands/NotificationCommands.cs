@@ -87,7 +87,7 @@ namespace TwitchNotifier.SlashCommands
             };
 
             //добавление уведомления в базу данных
-            if (!await NotificationsDataWorker.AddNotificationAsync(notification))
+            if (!await Database.AddNotificationAsync(notification))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -163,7 +163,7 @@ namespace TwitchNotifier.SlashCommands
 
             DiscordGuild guild = ctx.Guild;
 
-            Notification? notification = await NotificationsDataWorker.GetNotificationAsync(notificationId);
+            Notification? notification = await Database.GetNotificationAsync(notificationId);
 
             if (notification == null || notification.DiscordGuildId != guild.Id)
             {
@@ -176,7 +176,7 @@ namespace TwitchNotifier.SlashCommands
             }
 
             //удаление уведомления из базы данных
-            if (!await NotificationsDataWorker.RemoveNotificationAsync(notification))
+            if (!await Database.RemoveNotificationAsync(notification))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
@@ -251,7 +251,7 @@ namespace TwitchNotifier.SlashCommands
 
             DiscordGuild guild = ctx.Guild;
 
-            List<Notification>? guildNotifications = await NotificationsDataWorker.GetNotificationsInAsync(guild.Id);
+            List<Notification>? guildNotifications = await Database.GetNotificationsInAsync(guild.Id);
 
             if (guildNotifications == null)
             {
@@ -390,7 +390,7 @@ namespace TwitchNotifier.SlashCommands
                 return;
             }
 
-            Notification? notification = await NotificationsDataWorker.GetNotificationAsync(notificationId);
+            Notification? notification = await Database.GetNotificationAsync(notificationId);
             if (notification == null)
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
@@ -421,7 +421,7 @@ namespace TwitchNotifier.SlashCommands
                 notification.HEXEmbedColor = embedColor;
             }
 
-            if(!await NotificationsDataWorker.EditNotificationAsync(notification))
+            if(!await Database.EditNotificationAsync(notification))
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {

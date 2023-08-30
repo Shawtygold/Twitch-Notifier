@@ -34,7 +34,7 @@ namespace TwitchNotifier
             SlashCommands.RegisterCommands<HelpCommand>();
 
             StreamMonitor streamMonitor;
-            List<Notification>? notifications = await NotificationsDataWorker.GetNotificationsAsync();
+            List<Notification>? notifications = await Database.GetNotificationsAsync();
             if (notifications == null)
                 return;
 
