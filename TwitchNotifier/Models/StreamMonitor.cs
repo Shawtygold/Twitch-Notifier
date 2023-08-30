@@ -4,7 +4,6 @@ using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.Api.Services;
 using TwitchNotifier.Config;
-using TwitchNotifier.Helpers;
 
 namespace TwitchNotifier.Models
 {
@@ -48,7 +47,7 @@ namespace TwitchNotifier.Models
             string twitchChannelName = e.Channel;
             var stream = e.Stream;
       
-            List<Notification>? allNotifications = await NotificationsDataWorker.GetNotificationsAsync();
+            List<Notification>? allNotifications = await Database.GetNotificationsAsync();
 
             if (allNotifications == null)
                 return;
@@ -65,7 +64,7 @@ namespace TwitchNotifier.Models
                 }
                 catch (Exception ex)
                 {
-                    ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get a discord channel to which you need to send a notification about the start of the stream on Twitch.\nException: {ex}");
+                    Logger.Error($"Exception: {ex}");
                     return;
                 }
 
@@ -81,11 +80,15 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong.\n\nPlease contact the developer and include the following debugging information in the message:\n```{ex}\n```");
+                        await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
+                        {
+                            Color = DiscordColor.Red,
+                            Description = $"Hmm, something went wrong.\n\nPlease contact the developer and include the following debugging information in the message:\n```{ex}\n```"
+                        });
                     }
                     catch
                     {
-                        ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to find out the owner of the channel that started the live stream.\nException: {ex}");
+                        Logger.Error($"Exception: {ex}");
                     }                   
                     return;
                 }
@@ -132,11 +135,15 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong. Maybe I'm not allowed to access the channel, send messages, embed links or attach files! Please, check the permissions.");
+                        await discordChannel.SendMessageAsync( new DiscordEmbedBuilder()
+                        {
+                            Color = DiscordColor.Red,
+                            Description = $"Hmm, something went wrong. Maybe I'm not allowed to access the channel, send messages, embed links or attach files! Please, check the permissions."
+                        });
                     }
                     catch
                     {
-                        ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong. Permissions should be checked.\nException {ex}");
+                        Logger.Error($"Exception: {ex}");
                     }                    
                     return;
                 }
@@ -144,11 +151,15 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await ErrorMessageHelper.SendEmbedErrorMessageAsync(discordChannel, $"Hmm, something went wrong when trying to send a notification to the Discord channel.\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```");
+                        await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
+                        {
+                            Color = DiscordColor.Red,
+                            Description = $"Hmm, something went wrong when trying to send a notification to the Discord channel.\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```"
+                        });
                     }
                     catch
                     {
-                        ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to send a notification to the Discord channel.\nException:{ex}");
+                        Logger.Error($"Exception: {ex}");
                     }                    
                     return;
                 }
@@ -196,7 +207,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong while trying to set channels to monitor!\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return;
             }
         }
@@ -215,7 +226,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to start tracking channel activity.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return;
             }
         }

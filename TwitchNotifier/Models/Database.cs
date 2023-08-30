@@ -1,9 +1,13 @@
-﻿using TwitchNotifier.Db;
-using TwitchNotifier.Helpers;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using TwitchNotifier.Db;
 
 namespace TwitchNotifier.Models
 {
-    internal class NotificationsDataWorker
+    internal class Database
     {
         public static async Task<bool> AddNotificationAsync(Notification notification)
         {
@@ -19,7 +23,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to add notification to the database.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return false;
             }
         }
@@ -38,7 +42,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to remove notification from the database.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return false;
             }
         }
@@ -49,7 +53,7 @@ namespace TwitchNotifier.Models
             try
             {
                 Notification? oldNotification = new();
-                await Task.Run(()=> oldNotification = db.Notifications.ToList().Find(n => n.Id == notification.Id));
+                await Task.Run(() => oldNotification = db.Notifications.ToList().Find(n => n.Id == notification.Id));
                 if (oldNotification == null)
                     return false;
 
@@ -64,11 +68,10 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to edit a notification in the database.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return false;
             }
         }
-
 
         public static List<Notification>? GetNotifications()
         {
@@ -81,7 +84,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return null;
             }
         }
@@ -93,8 +96,7 @@ namespace TwitchNotifier.Models
             return notifications;
         }
 
-
-        public static  List<Notification>? GetNotificationsIn(ulong guildId)
+        public static List<Notification>? GetNotificationsIn(ulong guildId)
         {
             List<Notification> guildNotifications;
             using ApplicationContext db = new();
@@ -105,7 +107,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notifications by guild id.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return null;
             }
         }
@@ -116,7 +118,6 @@ namespace TwitchNotifier.Models
             await Task.Run(() => guildNotifications = GetNotificationsIn(guildId));
             return guildNotifications;
         }
-
 
         public static Notification? GetNotification(long id)
         {
@@ -133,7 +134,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                ErrorMessageHelper.SendConsoleErrorMessage($"Something went wrong when trying to get notification from the database.\nException: {ex}");
+                Logger.Error($"Exception: {ex}");
                 return null;
             }
         }

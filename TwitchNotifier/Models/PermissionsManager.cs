@@ -5,7 +5,6 @@ namespace TwitchNotifier.Models
 {
     internal class PermissionsManager
     {
-
         public static bool CheckPermissionsIn(DiscordMember member, DiscordChannel channel, List<Permissions> permissions)
         {
             for (int i = 0; i < permissions.Count; i++)
