@@ -10,20 +10,18 @@ namespace TwitchNotifier.Config
 
         internal async Task ReadJSONAsync()
         {
-            using (StreamReader streamReader = new("config.json"))
+            using StreamReader streamReader = new("config.json");
+            string json = await streamReader.ReadToEndAsync();
+            JSONStructure? data = JsonConvert.DeserializeObject<JSONStructure>(json);
+
+            if(data == null)
             {
-                string json = await streamReader.ReadToEndAsync();
-                JSONStructure? data = JsonConvert.DeserializeObject<JSONStructure>(json);
-
-                if(data == null)
-                {
-                    return;
-                }
-
-                Token = data.Token;
-                TwitchAccessToken = data.TwitchAccessToken;
-                TwitchClientId = data.TwitchClientId;
+                return;
             }
+
+            Token = data.Token;
+            TwitchAccessToken = data.TwitchAccessToken;
+            TwitchClientId = data.TwitchClientId;      
         }
     }
 
