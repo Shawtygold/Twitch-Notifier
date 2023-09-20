@@ -10,10 +10,10 @@ namespace TwitchNotifier.Config
 
         internal async Task ReadJSONAsync()
         {
-            using (StreamReader streamReader = new StreamReader("config.json"))
+            using (StreamReader streamReader = new("config.json"))
             {
                 string json = await streamReader.ReadToEndAsync();
-                JSONStructure data = JsonConvert.DeserializeObject<JSONStructure>(json);
+                JSONStructure? data = JsonConvert.DeserializeObject<JSONStructure>(json);
 
                 if(data == null)
                 {
