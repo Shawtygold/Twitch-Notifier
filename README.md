@@ -1,7 +1,7 @@
 ## Twitch-Notifier
 
 This is a Discord bot that sends notifications about the start of a stream on Twitch to your Discord server.
-(Library: DSharpPlus)
+(DSharpPLus library and Twitch API)
 
 ### Commands
 
