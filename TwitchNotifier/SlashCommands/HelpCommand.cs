@@ -1,6 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Models;
 
@@ -18,12 +17,13 @@ namespace TwitchNotifier.SlashCommands
             {
                 bot = await ctx.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
             }
-            catch (ServerErrorException)
+            catch
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "Server Error Exception. Please try again or contact the developer."
+                    Description = "Could not find myself on the server. Please try again or contact [support team](https://t.me/Shawtygoldq)."
                 }));
                 return;
             }
@@ -32,8 +32,9 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "I don't have access to this channel. Please, check the permissions."
+                    Description = "I don't have access to this channel. Please check the permissions."
                 }));
                 return;
             }
@@ -42,6 +43,7 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
                     Description = "Maybe I'm not allowed to send messages, embed links or attach files in this channel. Please check the permissions."
                 }));
@@ -53,16 +55,15 @@ namespace TwitchNotifier.SlashCommands
                 Color = new DiscordColor("#9246FF"),
                 Title = "Twitch-Notifier help",
                 //ImageUrl = bot.AvatarUrl,
-                Thumbnail = new() { Url = bot.AvatarUrl},
-                
+                Thumbnail = new() { Url = bot.AvatarUrl},              
                 Footer = new() { IconUrl = bot.AvatarUrl }
             };
 
             embed.AddField("Info", "To view information about the bot, use the `/info` command.");
-            embed.AddField("Add a notification", "To add a notification to the Twitch channel you are interested in, use the `/notification_add` command.");
-            embed.AddField("Remove a notification", "To remove a notification added earlier, use the `/notification_remove` command.");
-            embed.AddField("Notification list", "To view the list of available notifications on the server, use the `/notification_list` command.");
-            embed.AddField("Invite link", "To get a link to invite Twitch-Notifier to your server, use the `/invite command` or go to the bot profile and click on the [add to server](https://discord.com/api/oauth2/authorize?client_id=1140675542123806730&permissions=274878090240&scope=bot) button.");
+            embed.AddField("Add a notification", "To add a notification to the Twitch channel you are interested in, use the ``/notification_add`` command.");
+            embed.AddField("Remove a notification", "To remove a previously added notification, use the ``/notification_remove`` command.");
+            embed.AddField("Notification list", "To view the list of notifications available on the server, use the ``/notification_list`` command.");
+            embed.AddField("Invite link", "To get a link to invite Twitch-Notifier to your server, use the command ``/invite`` or go to the bot's profile and click on the [add to server](https://discord.com/api/oauth2/authorize?client_id=1140675542123806730&permissions=274878090240&scope=bot) button.");
             embed.AddField("Contacts", "[**Telegram**](https://t.me/Shawtygoldq)\n[**Github**](https://github.com/Shawtygold)\n[**Discord**](https://discordapp.com/users/571713377316110361/)");
 
             var button = new DiscordLinkButtonComponent("https://t.me/Shawtygoldq", "Contact the developer");

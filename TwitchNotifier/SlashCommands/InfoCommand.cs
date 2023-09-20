@@ -1,6 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Models;
 
@@ -18,12 +17,13 @@ namespace TwitchNotifier.SlashCommands
             {
                 bot = await ctx.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
             }
-            catch (ServerErrorException)
+            catch
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "Server Error Exception. Please try again or contact the developer."
+                    Description = "Could not find myself on the server. Please try again or contact [support team](https://t.me/Shawtygoldq)."
                 }));
                 return;
             }
@@ -32,8 +32,9 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "I don't have access to this channel. Please, check the permissions."
+                    Description = "I don't have access to this channel. Please check the permissions."
                 }));
                 return;
             }
@@ -42,8 +43,9 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "Maybe I'm not allowed to send messages or embed links in this channel. Please, check the permissions."
+                    Description = "Maybe I'm not allowed to send messages or embed links in this channel. Please check the permissions."
                 }));
                 return;
             }
@@ -66,7 +68,7 @@ namespace TwitchNotifier.SlashCommands
             embed.AddField("Joined At", $"{joinedAt.LocalDateTime}");
             embed.AddField("Servers", $"**·** Total {guildsCount}\n**·** Total Shards {totalShard}", true);
             embed.AddField("Versions", $"**·** C# {langVersion}\n**·** D#+ Version {DSharpVersion}\n**·** Gateway Version {gatewayVersion}", true);
-            embed.AddField("Developer", "Shawtygold\nhttps://t.me/Shawtygoldq");
+            embed.AddField("Developer", "[Shawtygold](https://t.me/Shawtygoldq)");
 
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(embed));
         }

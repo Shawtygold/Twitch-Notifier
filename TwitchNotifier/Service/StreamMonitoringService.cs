@@ -4,36 +4,37 @@ using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.Api.Services;
 using TwitchNotifier.Config;
+using TwitchNotifier.Models;
 
-namespace TwitchNotifier.Models
+namespace TwitchNotifier.Service
 {
-    internal class StreamMonitor
+    internal class StreamMonitoringService
     {
-        private static List<string> _channelsToMonitor { get; set; }
-        
-        private static LiveStreamMonitorService _monitorService;
-        private static TwitchAPI _api;
+        public static List<string> ChannelsToMonitoring { get; set; }
+        private static LiveStreamMonitorService MonitorService { get; set; }
+        private static TwitchAPI Api { get; set; }
+
         private static bool _startTracking;
 
-        public StreamMonitor(List<string> channelsToMonitor)
+        public StreamMonitoringService(List<string> channelsToMonitoring)
         {
-            if (channelsToMonitor == null)
+            if (channelsToMonitoring == null)
                 return;
 
             var jsonReader = new JSONReader();
             jsonReader.ReadJSONAsync().Wait();
 
-            _api = new TwitchAPI();
-            _api.Settings.ClientId = jsonReader.TwitchClientId;
-            _api.Settings.AccessToken = jsonReader.TwitchAccessToken;
+            Api = new TwitchAPI();
+            Api.Settings.ClientId = jsonReader.TwitchClientId;
+            Api.Settings.AccessToken = jsonReader.TwitchAccessToken;
 
             _startTracking = false;
-            _channelsToMonitor = channelsToMonitor;
+            ChannelsToMonitoring = channelsToMonitoring;
 
-            _monitorService = new(_api);
-            _monitorService.OnStreamOnline += MonitorService_OnStreamOnline;
+            MonitorService = new(Api);
+            MonitorService.OnStreamOnline += MonitorService_OnStreamOnline;
 
-            if (_channelsToMonitor.Count > 0)
+            if (ChannelsToMonitoring.Count > 0)
             {
                 StartTrackingAsync().Wait();
                 _startTracking = true;
@@ -46,7 +47,7 @@ namespace TwitchNotifier.Models
         {
             string twitchChannelName = e.Channel;
             var stream = e.Stream;
-      
+
             List<Notification>? allNotifications = await Database.GetNotificationsAsync();
 
             if (allNotifications == null)
@@ -64,7 +65,7 @@ namespace TwitchNotifier.Models
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error($"Exception: {ex}");
+                    Logger.Error($"{ex}");
                     return;
                 }
 
@@ -73,8 +74,26 @@ namespace TwitchNotifier.Models
                 User twitchChannelOwner;
                 try
                 {
-                    var userListResponse = await _api.Helix.Users.GetUsersAsync(logins: new List<string> { twitchChannelName });
-                    twitchChannelOwner = userListResponse.Users[0];
+                    GetUsersResponse response = await Api.Helix.Users.GetUsersAsync(logins: new List<string> { twitchChannelName });
+                    if (response.Users == null || response.Users.ToList().Count == 0)
+                    {
+                        try
+                        {
+                            await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
+                            {
+                                Title = "An error occurred",
+                                Color = DiscordColor.Red,
+                                Description = "The owner of the Twitch channel could not be found.\nPlease contact [support team](https://t.me/Shawtygoldq)."
+                            });
+                        }
+                        catch
+                        {
+                            Logger.Error($"Could not find the owner of this Twitch channel.");
+                        }
+                        return;
+                    }
+
+                    twitchChannelOwner = response.Users[0];
                 }
                 catch (Exception ex)
                 {
@@ -82,14 +101,15 @@ namespace TwitchNotifier.Models
                     {
                         await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
                         {
+                            Title = "An error occurred",
                             Color = DiscordColor.Red,
-                            Description = $"Hmm, something went wrong.\n\nPlease contact the developer and include the following debugging information in the message:\n```{ex}\n```"
+                            Description = $"Hmm, something went wrong. This was Discord's response:\n> {ex.Message}\n\nPlease contact [support team](https://t.me/Shawtygoldq)."
                         });
                     }
                     catch
                     {
-                        Logger.Error($"Exception: {ex}");
-                    }                   
+                        Logger.Error($"{ex}");
+                    }
                     return;
                 }
 
@@ -135,16 +155,17 @@ namespace TwitchNotifier.Models
                 {
                     try
                     {
-                        await discordChannel.SendMessageAsync( new DiscordEmbedBuilder()
+                        await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
                         {
+                            Title = "An error occurred",
                             Color = DiscordColor.Red,
-                            Description = $"Hmm, something went wrong. Maybe I'm not allowed to access the channel, send messages, embed links or attach files! Please, check the permissions."
+                            Description = $"Hmm, something went wrong. Maybe I'm not allowed to send messages, embed links or attach files! Please check the permissions."
                         });
                     }
                     catch
                     {
                         Logger.Error($"Exception: {ex}");
-                    }                    
+                    }
                     return;
                 }
                 catch (Exception ex)
@@ -153,14 +174,15 @@ namespace TwitchNotifier.Models
                     {
                         await discordChannel.SendMessageAsync(new DiscordEmbedBuilder()
                         {
+                            Title = "An error occurred",
                             Color = DiscordColor.Red,
-                            Description = $"Hmm, something went wrong when trying to send a notification to the Discord channel.\n\nThis was Discord's response:\n> {ex.Message}\n\nIf you would like to contact the bot owner about this, please include the following debugging information in the message:\n```{ex}\n```"
+                            Description = $"Hmm, something went wrong. This was Discord's response:\n> {ex.Message}\n\nPlease contact [support team](https://t.me/Shawtygoldq)."
                         });
                     }
                     catch
                     {
-                        Logger.Error($"Exception: {ex}");
-                    }                    
+                        Logger.Error($"{ex}");
+                    }
                     return;
                 }
             }
@@ -170,64 +192,77 @@ namespace TwitchNotifier.Models
 
         #region [Methods]
 
-        public static async Task AddNotificationAsync(string twitchChannelName)
+        public static async Task<bool> AddChannelToMonitoringAsync(string twitchChannelName)
         {
             if (twitchChannelName == null)
-                return;
+                return false;
 
-            _channelsToMonitor.Add(twitchChannelName);
+            ChannelsToMonitoring.Add(twitchChannelName);
 
-            await UpdateChannelsToMonitorAsync(_channelsToMonitor);
+            await UpdateChannelsToMonitoringAsync(ChannelsToMonitoring);
 
             if (!_startTracking)
             {
                 await StartTrackingAsync();
                 _startTracking = true;
             }
+
+            return true;
         }
 
-        public static async Task RemoveNotificationAsync(string twitchChannelName)
+        public static async Task<bool> RemoveChannelFromMonitoringAsync(string twitchChannelName)
         {
             if (twitchChannelName == null)
-                return;
+                return false;
 
-            _channelsToMonitor.Remove(twitchChannelName);
+            ChannelsToMonitoring.Remove(twitchChannelName);
 
-            if (_channelsToMonitor.Count > 0)
+            if (ChannelsToMonitoring.Count > 0)
             {
-                await UpdateChannelsToMonitorAsync(_channelsToMonitor);
+                if(!await UpdateChannelsToMonitoringAsync(ChannelsToMonitoring))
+                    return false;
             }
+
+            return true;
         }
 
-        public static async Task UpdateChannelsToMonitorAsync(List<string> channelsToMonitor)
+        public static async Task<bool> UpdateChannelsToMonitoringAsync(List<string> channelsToMonitor)
         {
             try
             {
-                await Task.Run(() => _monitorService.SetChannelsByName(channelsToMonitor));
+                await Task.Run(() => MonitorService.SetChannelsByName(channelsToMonitor));
+                return true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
-                return;
+                Logger.Error($"{ex}");
+                return false;
             }
         }
 
-        private static async Task StartTrackingAsync()
+        private static async Task<bool> StartTrackingAsync()
         {
-            await Task.Run(() => StartTracking());
+            bool result = false;
+            await Task.Run(() => { result = StartTracking(); });
+
+            if (!result)
+                return false;
+
+            return true;
         }
 
-        private static void StartTracking()
+        private static bool StartTracking()
         {
             try
             {
-                _monitorService.SetChannelsByName(_channelsToMonitor);
-                _monitorService.Start();
+                MonitorService.SetChannelsByName(ChannelsToMonitoring);
+                MonitorService.Start();
+                return true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
-                return;
+                Logger.Error($"{ex}");
+                return false;
             }
         }
 

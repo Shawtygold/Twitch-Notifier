@@ -1,6 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using DSharpPlus.Exceptions;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Models;
 
@@ -21,12 +20,13 @@ namespace TwitchNotifier.SlashCommands
             {
                 bot = await ctx.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id);
             }
-            catch (ServerErrorException)
+            catch
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "Server Error Exception. Please try again or contact the developer."
+                    Description = "Could not find myself on the server. Please try again or contact [support team](https://t.me/Shawtygoldq)."
                 }));
                 return;
             }
@@ -35,8 +35,9 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "I don't have access to this channel. Please, check the permissions."
+                    Description = "I don't have access to this channel. Please check the permissions."
                 }));
                 return;
             }
@@ -45,8 +46,9 @@ namespace TwitchNotifier.SlashCommands
             {
                 await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
                 {
+                    Title = "An error occurred",
                     Color = DiscordColor.Red,
-                    Description = "Maybe I'm not allowed to send messages or embed links in this channel. Please, check the permissions."
+                    Description = "Maybe I'm not allowed to send messages or embed links in this channel. Please check the permissions."
                 }));
                 return;
             }
@@ -54,7 +56,7 @@ namespace TwitchNotifier.SlashCommands
             await ctx.EditResponseAsync(new DiscordWebhookBuilder().AddEmbed(new DiscordEmbedBuilder()
             {
                 Color = new DiscordColor("#9246FF"),
-                Description = $"Link to invite to the server: **{inviteLink}**\nNeed help? Write to me in private messages: shawtygold"
+                Description = $"Link to invite to the server: **{inviteLink}**\nNeed help? Private message me at [Telegram](https://t.me/Shawtygoldq)."
             }));
         }
     }

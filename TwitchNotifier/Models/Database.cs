@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TwitchNotifier.Db;
+﻿using TwitchNotifier.Db;
 
 namespace TwitchNotifier.Models
 {
@@ -23,7 +18,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return false;
             }
         }
@@ -42,7 +37,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return false;
             }
         }
@@ -52,23 +47,14 @@ namespace TwitchNotifier.Models
             using ApplicationContext db = new();
             try
             {
-                Notification? oldNotification = new();
-                await Task.Run(() => oldNotification = db.Notifications.ToList().Find(n => n.Id == notification.Id));
-                if (oldNotification == null)
-                    return false;
-
-                int index = db.Notifications.ToList().IndexOf(oldNotification);
-
-                db.Notifications.ToList()[index].DiscordChannelId = notification.DiscordChannelId;
-                db.Notifications.ToList()[index].HEXEmbedColor = notification.HEXEmbedColor;
-                db.Notifications.ToList()[index].Message = notification.Message;
-                db.SaveChanges();
+                await Task.Run(() => db.Notifications.Update(notification));
+                await db.SaveChangesAsync();
 
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return false;
             }
         }
@@ -84,7 +70,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return null;
             }
         }
@@ -107,7 +93,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return null;
             }
         }
@@ -134,7 +120,7 @@ namespace TwitchNotifier.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception: {ex}");
+                Logger.Error($"{ex}");
                 return null;
             }
         }

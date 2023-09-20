@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using TwitchNotifier.Config;
 using TwitchNotifier.Models;
+using TwitchNotifier.Service;
 using TwitchNotifier.SlashCommands;
 
 namespace TwitchNotifier
@@ -33,14 +34,12 @@ namespace TwitchNotifier
             SlashCommands.RegisterCommands<InviteCommand>();
             SlashCommands.RegisterCommands<HelpCommand>();
 
-            StreamMonitor streamMonitor;
             List<Notification>? notifications = await Database.GetNotificationsAsync();
             if (notifications == null)
                 return;
 
             List<string> channelsToMonitor = await GetChannelsToMonitorAsync(notifications);
-
-            streamMonitor = new(channelsToMonitor);
+            StreamMonitoringService streamMonitoringService = new(channelsToMonitor);
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
@@ -48,7 +47,7 @@ namespace TwitchNotifier
 
         private Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs args)
         {
-            Console.WriteLine("Bot is ready!");
+            Logger.Info("Client is ready!");
             DiscordActivity activity = new()
             {
                 Name = "/help",
